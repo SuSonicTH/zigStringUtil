@@ -122,23 +122,24 @@ pub const JoinerOptions = struct {
 };
 
 pub const Joiner = struct {
-    builder: Builder,
+    builder: Builder = undefined,
     options: JoinerOptions,
     isInitialized: bool = false,
     isFinalized: bool = false,
 
     pub fn init(allocator: std.mem.Allocator, options: JoinerOptions) !Joiner {
-        var joiner: Joiner = .{
+        return .{
             .builder = try Builder.init(allocator, options.size),
             .options = options,
         };
-        return joiner;
     }
 
-    pub fn add(self: Joiner, string: []const u8) !void {
+    pub fn add(self: *Joiner, string: []const u8) !void {
         if (!self.isInitialized) {
             try self.builder.add(self.options.prefix);
             self.isInitialized = true;
+        } else {
+            try self.builder.add(self.options.delimiter);
         }
         try self.builder.add(string);
     }
@@ -193,7 +194,7 @@ test "comma delimited" {
     try joiner.add("two");
     try joiner.add("three");
 
-    try testing.expectEqualStrings("one,two,three", joiner.get());
+    try testing.expectEqualStrings("one,two,three", try joiner.get());
 }
 
 test "comma delimited with prefix and suffix" {
@@ -208,5 +209,35 @@ test "comma delimited with prefix and suffix" {
     try joiner.add("two");
     try joiner.add("three");
 
-    try testing.expectEqualStrings("one,two,three", joiner.get());
+    try testing.expectEqualStrings("[one,two,three]", try joiner.get());
+}
+
+test "empty delimiter with prefix and suffix" {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const allocator = gpa.allocator();
+    defer _ = gpa.deinit();
+
+    var joiner: Joiner = try Joiner.init(allocator, .{ .prefix = "[", .suffix = "]" });
+    defer joiner.deinit();
+
+    try joiner.add("one");
+    try joiner.add("two");
+    try joiner.add("three");
+
+    try testing.expectEqualStrings("[onetwothree]", try joiner.get());
+}
+
+test "empty delimiter with no prefix or suffix" {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const allocator = gpa.allocator();
+    defer _ = gpa.deinit();
+
+    var joiner: Joiner = try Joiner.init(allocator, .{});
+    defer joiner.deinit();
+
+    try joiner.add("one");
+    try joiner.add("two");
+    try joiner.add("three");
+
+    try testing.expectEqualStrings("onetwothree", try joiner.get());
 }
