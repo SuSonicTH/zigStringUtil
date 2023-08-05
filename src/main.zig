@@ -8,7 +8,7 @@ pub const Builder = struct {
 
     const defaultSize = 1024;
 
-    fn init(allocator: std.mem.Allocator, size: usize) !Builder {
+    pub fn init(allocator: std.mem.Allocator, size: usize) !Builder {
         const reseved = switch (size) {
             0 => defaultSize,
             else => size,
