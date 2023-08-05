@@ -175,10 +175,10 @@ pub const Joiner = struct {
     pub fn len(self: *Joiner) usize {
         var length = self.builder.len;
         if (!self.isInitialized) {
-            length += self.option.prefix.len;
+            length += self.options.prefix.len;
         }
         if (!self.isFinalized) {
-            length += self.option.prefix.len;
+            length += self.options.prefix.len;
         }
         return length;
     }
