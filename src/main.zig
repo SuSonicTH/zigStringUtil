@@ -25,8 +25,10 @@ pub const Builder = struct {
         self.len += string.len;
     }
 
-    pub fn get(self: *Builder) []u8 {
-        return self.buffer[0..self.len];
+    pub fn get(self: *Builder) ![:0]u8 {
+        try self.ensureLen(1);
+        self.buffer[self.len] = 0;
+        return self.buffer[0..self.len :0];
     }
 
     fn ensureLen(self: *Builder, additionalLen: usize) !void {
@@ -64,7 +66,7 @@ test "basic concatination" {
     try testing.expectEqual(@as(usize, 0), builder.len);
     try test_add_string(&builder);
     try testing.expectEqual(@as(usize, 13), builder.len);
-    try testing.expectEqualStrings(test_string, builder.get());
+    try testing.expectEqualStrings(test_string, try builder.get());
 }
 
 test "basic concatination with size 1" {
@@ -78,7 +80,7 @@ test "basic concatination with size 1" {
     try testing.expectEqual(@as(usize, 0), builder.len);
     try test_add_string(&builder);
     try testing.expectEqual(@as(usize, 13), builder.len);
-    try testing.expectEqualStrings(test_string, builder.get());
+    try testing.expectEqualStrings(test_string, try builder.get());
     try testing.expectEqual(@as(usize, 16), builder.buffer.len);
 }
 
@@ -95,12 +97,12 @@ test "clear and isEmpty" {
     try test_add_string(&builder);
 
     try testing.expect(!builder.isEmpty());
-    try testing.expectEqualStrings(test_string, builder.get());
+    try testing.expectEqualStrings(test_string, try builder.get());
 
     builder.clear();
 
     try testing.expect(builder.isEmpty());
-    try testing.expectEqualStrings("", builder.get());
+    try testing.expectEqualStrings("", try builder.get());
     try testing.expectEqual(@as(usize, 0), builder.len);
 }
 
