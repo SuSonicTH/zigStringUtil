@@ -117,9 +117,9 @@ fn test_add_string(builder: *Builder) !void {
 }
 
 pub const JoinerOptions = struct {
-    prefix: []const u8 = "",
-    delimiter: []const u8 = "",
-    suffix: []const u8 = "",
+    prefix: [:0]const u8 = "",
+    delimiter: [:0]const u8 = "",
+    suffix: [:0]const u8 = "",
     size: usize = 0,
 };
 
