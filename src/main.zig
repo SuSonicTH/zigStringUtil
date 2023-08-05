@@ -146,7 +146,7 @@ pub const Joiner = struct {
         try self.builder.add(string);
     }
 
-    pub fn get(self: *Joiner) ![]u8 {
+    pub fn get(self: *Joiner) ![:0]u8 {
         if (!self.isInitialized) {
             try self.builder.add(self.options.prefix);
             self.isInitialized = true;
