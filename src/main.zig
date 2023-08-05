@@ -165,7 +165,7 @@ pub const Joiner = struct {
     }
 
     pub fn isEmpty(self: *Joiner) bool {
-        return self.len == 0;
+        return self.builder.len == 0;
     }
 
     pub fn deinit(self: *Joiner) void {
