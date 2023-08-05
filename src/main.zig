@@ -171,6 +171,17 @@ pub const Joiner = struct {
     pub fn deinit(self: *Joiner) void {
         self.builder.deinit();
     }
+
+    pub fn len(self: *Joiner) usize {
+        var length = self.builder.len;
+        if (!self.isInitialized) {
+            length += self.option.prefix.len;
+        }
+        if (!self.isFinalized) {
+            length += self.option.prefix.len;
+        }
+        return length;
+    }
 };
 
 test "empty joiner" {
