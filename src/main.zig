@@ -115,9 +115,9 @@ fn test_add_string(builder: *Builder) !void {
 }
 
 pub const JoinerOptions = struct {
-    prefix: []u8 = "",
-    delimiter: []u8 = "",
-    suffix: []u8 = "",
+    prefix: []const u8 = "",
+    delimiter: []const u8 = "",
+    suffix: []const u8 = "",
     size: usize = 0,
 };
 
@@ -129,27 +129,27 @@ pub const Joiner = struct {
 
     pub fn init(allocator: std.mem.Allocator, options: JoinerOptions) !Joiner {
         var joiner: Joiner = .{
-            .builder = Builder.init(allocator, options.size),
+            .builder = try Builder.init(allocator, options.size),
             .options = options,
         };
         return joiner;
     }
 
-    pub fn add(self: Joiner, string: []u8) !void {
+    pub fn add(self: Joiner, string: []const u8) !void {
         if (!self.isInitialized) {
-            self.builder.add(self.options.prefix);
+            try self.builder.add(self.options.prefix);
             self.isInitialized = true;
         }
-        self.builder.add(string);
+        try self.builder.add(string);
     }
 
-    pub fn get(self: *Joiner) []u8 {
+    pub fn get(self: *Joiner) ![]u8 {
         if (!self.isInitialized) {
-            self.builder.add(self.options.prefix);
+            try self.builder.add(self.options.prefix);
             self.isInitialized = true;
         }
         if (!self.isFinalized) {
-            self.builder.add(self.options.suffix);
+            try self.builder.add(self.options.suffix);
             self.isFinalized = true;
         }
         return self.builder.get();
@@ -166,6 +166,47 @@ pub const Joiner = struct {
     }
 
     pub fn deinit(self: *Joiner) void {
-        self.allocator.free(self.buffer);
+        self.builder.deinit();
     }
 };
+
+test "empty joiner" {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const allocator = gpa.allocator();
+    defer _ = gpa.deinit();
+
+    var joiner: Joiner = try Joiner.init(allocator, .{});
+    defer joiner.deinit();
+
+    try testing.expectEqualStrings("", try joiner.get());
+}
+
+test "comma delimited" {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const allocator = gpa.allocator();
+    defer _ = gpa.deinit();
+
+    var joiner: Joiner = try Joiner.init(allocator, .{ .delimiter = "," });
+    defer joiner.deinit();
+
+    try joiner.add("one");
+    try joiner.add("two");
+    try joiner.add("three");
+
+    try testing.expectEqualStrings("one,two,three", joiner.get());
+}
+
+test "comma delimited with prefix and suffix" {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const allocator = gpa.allocator();
+    defer _ = gpa.deinit();
+
+    var joiner: Joiner = try Joiner.init(allocator, .{ .prefix = "[", .delimiter = ",", .suffix = "]" });
+    defer joiner.deinit();
+
+    try joiner.add("one");
+    try joiner.add("two");
+    try joiner.add("three");
+
+    try testing.expectEqualStrings("one,two,three", joiner.get());
+}
