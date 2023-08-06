@@ -141,10 +141,10 @@ pub const Joiner = struct {
             self.builder.len -= self.options.suffix.len;
             self.isFinalized = false;
         }
-        if (!self.isInitialized) {
+        if (!self.isInitialized or self.builder.len == 0) {
             try self.builder.add(self.options.prefix);
             self.isInitialized = true;
-        } else {
+        } else if (self.builder.len != self.options.prefix.len) {
             try self.builder.add(self.options.delimiter);
         }
         try self.builder.add(string);
@@ -274,5 +274,37 @@ test "get after add after get handles suffix correctly" {
     try testing.expectEqualStrings("[one,two]", try joiner.get());
 
     try joiner.add("three");
+    try testing.expectEqualStrings("[one,two,three]", try joiner.get());
+}
+
+test "add after get with empty builder" {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const allocator = gpa.allocator();
+    defer _ = gpa.deinit();
+
+    var joiner: Joiner = try Joiner.init(allocator, .{ .delimiter = "," });
+    defer joiner.deinit();
+
+    try testing.expectEqualStrings("", try joiner.get());
+    try joiner.add("one");
+    try joiner.add("two");
+    try joiner.add("three");
+
+    try testing.expectEqualStrings("one,two,three", try joiner.get());
+}
+
+test "add after get with empty builder with suffix" {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const allocator = gpa.allocator();
+    defer _ = gpa.deinit();
+
+    var joiner: Joiner = try Joiner.init(allocator, .{ .prefix = "[", .delimiter = ",", .suffix = "]" });
+    defer joiner.deinit();
+
+    try testing.expectEqualStrings("[]", try joiner.get());
+    try joiner.add("one");
+    try joiner.add("two");
+    try joiner.add("three");
+
     try testing.expectEqualStrings("[one,two,three]", try joiner.get());
 }
