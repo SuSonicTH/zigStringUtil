@@ -129,11 +129,6 @@ pub const Joiner = struct {
     isInitialized: bool = false,
     isFinalized: bool = false,
 
-    pub const Error = error{
-        AlreadyFinalized,
-        OutOfMemory,
-    };
-
     pub fn init(allocator: std.mem.Allocator, options: JoinerOptions) !Joiner {
         return .{
             .builder = try Builder.init(allocator, options.size),
@@ -141,9 +136,10 @@ pub const Joiner = struct {
         };
     }
 
-    pub fn add(self: *Joiner, string: []const u8) Joiner.Error!void {
+    pub fn add(self: *Joiner, string: []const u8) !void {
         if (self.isFinalized) {
-            return Error.AlreadyFinalized;
+            self.builder.len -= self.options.suffix.len;
+            self.isFinalized = false;
         }
         if (!self.isInitialized) {
             try self.builder.add(self.options.prefix);
@@ -263,16 +259,20 @@ test "empty delimiter with no prefix or suffix" {
     try testing.expectEqualStrings("onetwothree", try joiner.get());
 }
 
-test "join after get throws error" {
+test "get after add after get handles suffix correctly" {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
     defer _ = gpa.deinit();
 
-    var joiner: Joiner = try Joiner.init(allocator, .{ .delimiter = "," });
+    var joiner: Joiner = try Joiner.init(allocator, .{ .prefix = "[", .delimiter = ",", .suffix = "]" });
     defer joiner.deinit();
-    try joiner.add("one");
-    try testing.expectEqualStrings("one", try joiner.get());
 
-    const err = joiner.add("two");
-    try testing.expect(err == Joiner.Error.AlreadyFinalized);
+    try joiner.add("one");
+    try testing.expectEqualStrings("[one]", try joiner.get());
+
+    try joiner.add("two");
+    try testing.expectEqualStrings("[one,two]", try joiner.get());
+
+    try joiner.add("three");
+    try testing.expectEqualStrings("[one,two,three]", try joiner.get());
 }
