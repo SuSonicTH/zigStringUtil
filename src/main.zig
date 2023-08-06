@@ -129,7 +129,7 @@ pub const Joiner = struct {
     isInitialized: bool = false,
     isFinalized: bool = false,
 
-    const Error = error{
+    pub const Error = error{
         AlreadyFinalized,
         OutOfMemory,
     };
